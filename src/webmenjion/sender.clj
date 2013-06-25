@@ -4,7 +4,7 @@
 (defn get-endpoint
   "Returns the receiver endpoint"
   ([endpoint host]
-    (get-url endpoint host "http"))
+    (get-endpoint endpoint host "http"))
   ([endpoint host scheme]
     (let [url (str scheme "://" host endpoint)]
       (str "<link href=\"" url "\" rel=\"http://webmention.org/\" />"))))

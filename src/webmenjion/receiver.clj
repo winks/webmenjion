@@ -1,9 +1,12 @@
 (ns webmenjion.receiver
   (:require [clj-http.client :as client]
-            [clojure.contrib.string :as s]
             [clojure.data.json :as json]))
 
-(def errors {:source_not_found "The source URI does not exist."})
+(def errors {:source_not_found "The source URI does not exist."
+             :target_not_found "The target URI does not exist."
+             :target_not_supported "The specified target URI is not a WebMention-enabled resource."
+             :no_link_found "The source URI does not contain a link to the target URI."
+             :already_registered "The specified WebMention has already been registered."})
 
 (defn verify-self
   "Verification that target is a valid url on the receiver side."
@@ -14,7 +17,7 @@
   "Verification that source contains target"
   [source target]
   (let [response (client/get source)]
-    (s/substring? target (:body response))))
+    (.contains (:body response) target)))
 
 (defn respond-success
   "Response - Success, json or html"
@@ -32,12 +35,14 @@
 
 (defn respond-error
   "Response - Error"
-  [content-type error description]
-  (if (= "json" content-type)
-    {:status 400
-     :headers {"Content-Type" "application/json"}
-     :body (json/write-str {:error error :error_description description})}
-    {:status 400
-     :headers {"Content-Type" "text/html"}
-     :body (str "<!DOCTYPE html>" "\n" "<html><head><title>WebMention Error</title></head>"
-             "<body><h2>" error "</h2>" "\n" "<p>" description "</p></body></html>")}))
+  ([content-type error]
+    (respond-error content-type error (get errors error)))
+  ([content-type error description]
+    (if (= "json" content-type)
+      {:status 400
+       :headers {"Content-Type" "application/json"}
+       :body (json/write-str {:error (name error) :error_description description})}
+      {:status 400
+       :headers {"Content-Type" "text/html"}
+       :body (str "<!DOCTYPE html>" "\n" "<html><head><title>WebMention Error</title></head>"
+               "<body><h2>" (name error) "</h2>" "\n" "<p>" description "</p></body></html>")})))
